@@ -42,8 +42,6 @@ let humidityDefaultConfig = Config(minimumValue: 0.0,
                                     .init(color: .blue, location: 0.40)
                                 ]),
                                 center: .center,
-                                //                            startAngle: .degrees((temperatureValue / config.totalValue) * 0.75 * 270),
-                                //                            endAngle: .degrees((currentTemperature / config.totalValue) * 0.75 * 270)
                                 startAngle: .degrees(0),
                                 endAngle: .degrees(270)
                             ))
@@ -61,8 +59,6 @@ let ambientDefaultTemperatureConfig = Config(minimumValue: 10.0,
                                             .init(color: .orange, location: 0.80),
                                         ]),
                                         center: .center,
-                                        //                            startAngle: .degrees((temperatureValue / config.totalValue) * 0.75 * 270),
-                                        //                            endAngle: .degrees((currentTemperature / config.totalValue) * 0.75 * 270)
                                         startAngle: .degrees(0),
                                         endAngle: .degrees(270)
                                       ))

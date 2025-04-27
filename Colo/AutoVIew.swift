@@ -46,8 +46,6 @@ struct AutoView: View {
                                 .init(color: .red, location: 0.95)
                             ]),
                             center: .center,
-                            //                            startAngle: .degrees((temperatureValue / config.totalValue) * 0.75 * 270),
-                            //                            endAngle: .degrees((currentTemperature / config.totalValue) * 0.75 * 270)
                             startAngle: .degrees(0),
                             endAngle: .degrees(270)
                         )
@@ -156,7 +154,6 @@ struct AutoView: View {
     }
     
     private func change(location: CGPoint) {
-        //        currentPosition = location
         let vector = CGVector(dx: location.x, dy: location.y)
         
         var angle = atan2(vector.dy - (config.knobRadius + 10), vector.dx - (config.knobRadius + 10)) + .pi/2.0
@@ -169,7 +166,6 @@ struct AutoView: View {
         
         if (fixedAngle * 180 / .pi) <= 270 && value <= currentTemperature && value < config.maximumValue {
             temperatureValue = value
-//            angleValue = (fixedAngle * 180 / .pi)
         }
     }
 }
