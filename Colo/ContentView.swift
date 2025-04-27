@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  TemperatureControl
 //
-//  Created by Anik on 10/9/20.
+//  Created by Jakub Majka on 19/4/25.
 //
 
 import SwiftUI
@@ -50,11 +50,19 @@ import SwiftUI
 
 
 struct ContentView: View {
-    let timer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
+//    let timer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
     
     let coolantConfig = coolantDefaultConfig
     let humidityConfig = humidityDefaultConfig
     let ambientTemperatureConfig = ambientDefaultTemperatureConfig
+    
+    //websocket
+    let client = WebSocketClient(url: URL(string: "ws://192.168.1.62")!,
+                                 configuration: .init(additionalHeaders: [:],
+                                 pingInterval: 2,
+                                 pingTryReconnectCountLimit: 2))
+    
+    @State private var connectionState: ConnectionState = .disconnected
     
 //    @StateObject var state = OperationState()
 //    @State private var lastSentState = OperationState()
@@ -70,20 +78,29 @@ struct ContentView: View {
     @State var autoPreset: AutoPreset = .Normal
     @State var goalTemperature: CGFloat = 0
     
-    @State var editLock: Int = 0
-//
+//    @State var editLock: Int = 0
+    @State var currentTemperature: CGFloat = 25
     @State var coolantTemperature: CGFloat = 60
     @State var humidity: CGFloat = 97
     @State var ambientTemperature: CGFloat = 28
     
+    @State private var triggerFeedback = false
+    
     let ip = "192.168.1.108"
     var body: some View {
         ZStack {
-            Rectangle()
-                .fill(Color.init(red: 34/255, green: 30/255, blue: 47/255))
-                .edgesIgnoringSafeArea(.all)
-            VStack{
-                AutoView(selectedMode: $selectedMode, temperatureValue: $goalTemperature).opacity(selectedMode == .Off ? 0.6 : 1)
+            Rectangle().fill(Color.init(red: 34/255, green: 30/255, blue: 47/255)).edgesIgnoringSafeArea(.all)
+            VStack(spacing: 3){
+                HStack{
+                    Circle()
+                        .blink()
+                        .connectionColor(connectionState)
+                        .frame(height: 12)
+                        .padding(.top, 20)
+                        .padding(.leading, 25)
+                    Spacer()
+                }
+                AutoView(selectedMode: $selectedMode, temperatureValue: $goalTemperature, currentTemperature: currentTemperature, client: client).opacity(selectedMode == .Off ? 0.6 : 1)
                 HStack{
                     Spacer()
                     gauge(value: $coolantTemperature, config: coolantConfig)
@@ -93,63 +110,145 @@ struct ContentView: View {
                     gauge(value: $ambientTemperature, config: ambientTemperatureConfig)
                     Spacer()
                 }.opacity(selectedMode == .Off ? 0.6 : 1)
-                //wifi.exclamationmark
-                PickerView("Mode", $selectedMode, name:"mode",ip: ip)
+                
+                PickerView("Mode", $selectedMode, name:"mode",ip: ip, client: client)
 
                 if(selectedMode == .Manual){
-                    PickerView("Fan", $fanSpeedMode,name: "fan_speed", ip: ip).padding(.top,30)
-                    PickerView("Pump", $pumpSpeedMode,name: "pump_speed", ip: ip).padding(.top,10)
-                    PickerView("Pad 1", $pad0,name: "pad_0",ip: ip).padding(.top,15)
-                    PickerView("Pad 2", $pad1,name: "pad_1", ip: ip).padding(.top,10)
+                    PickerView("Fan", $fanSpeedMode,name: "fan_speed", ip: ip, client: client).padding(.top,30)
+                    PickerView("Pump", $pumpSpeedMode,name: "pump_speed", ip: ip, client: client).padding(.top,10)
+                    PickerView("Pad 1", $pad0,name: "pad_0",ip: ip, client: client).padding(.top,15)
+                    PickerView("Pad 2", $pad1,name: "pad_1", ip: ip, client: client).padding(.top,10)
                     
                 }else if (selectedMode == .Auto){
-                    PickerView("Preset",$autoPreset,name: "auto_preset", ip: ip).padding(.top,30)
+                    PickerView("Preset",$autoPreset,name: "auto_preset", ip: ip, client: client).padding(.top,30)
                 }
                 Spacer()
             }.frame(maxWidth: 500)
         }
-        .onReceive(timer) { time in
-            loadStatusData()
-        }
+//        .onReceive(timer) { time in
+//            loadStatusData()
+//        }
         .onAppear{
-              loadStatusData()
+//            loadStatusData()
+            startWebSocket()
+            Task { @WebSocketActor [weak client] in
+                client?.onConnectionStateChange = { newState in
+                    Task { @MainActor in
+                        self.connectionState = newState
+                    }
+                }
+            }
+                
         }
+        .sensoryFeedback(.success, trigger: triggerFeedback)
         .onChange(of: selectedMode){ oldState, newState in
             if oldState != newState {
-                editLock += 1
+//                editLock += 1
                 Task{
-                    if await setStateProperty(ip: ip,name: "mode", state: newState.rawValue){
-                            do{sleep(2)}
-                            editLock -= 1
+                    await WsSetStateProperty(client: client, name: "mode", state: newState.rawValue)
+//                    if await setStateProperty(ip: ip,name: "mode", state: newState.rawValue){
+//                            do{sleep(2)}
+//                            editLock -= 1
                         //haptics
-                    }
+//                    }
                 }
             }
         }
     }
     
-    func loadStatusData(){
-        if editLock > 0{
-            print(editLock)
-            print("aborting")
-            return
-        }
-        Task{
-            do{
-                let data = try await getStatus(ip: ip)
-                coolantTemperature = data.coolantTemperature
-                ambientTemperature = data.ambientTemperature
-                humidity = CGFloat(data.humidity)
-                setSpeed(speed: $fanSpeedMode, val: data.fanSpeed)
-                setSpeed(speed: $pumpSpeedMode, val: data.pumpSpeed)
-                setPad(pad: $pad0, state: data.pad0)
-                setPad(pad: $pad1, state: data.pad1)
-                setAutoPreset(autoPreset: $autoPreset, preset: data.autoPreset)
-                setOperationMode(operationMode: $selectedMode, mode: data.operationMode)
-                
-            }catch{print(error)}
+    func startWebSocket(){
+        Task{ @WebSocketActor in
+            print("Starting websocket")
+            client.connect()
+            client.onReceive = { result in
+                switch result{
+                case .success(let message):
+                    switch message{
+                        case .string(let text):
+                            print("Received: \(text)")
+                        Task{ @MainActor in
+                            if text == "ok"{
+                                triggerFeedback.toggle()
+                            }else{
+                                loadWsStatus(text)
+                            }
+                        }
+                    default: break
+                    }
+                case .failure(let error):
+                    print("Receiving error: \(error)")
+                }
+            }
+            client.onConnectionStateChange = { state in
+                    print("Connection state: \(state)")
+            }
         }
     }
+    
+    
+    func loadWsStatus(_ dataString: String){
+        guard let dataObject = dataString.data(using: .utf8) else {
+            print("error converting string to data")
+            return
+        }
+        
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+    
+        do {
+            let data = try decoder.decode(ResponseStatus.self, from: dataObject)
+            
+            coolantTemperature = data.coolantTemperature
+            ambientTemperature = data.ambientTemperature
+            humidity = CGFloat(data.humidity)
+            setSpeed(speed: $fanSpeedMode, val: data.fanSpeed)
+            setSpeed(speed: $pumpSpeedMode, val: data.pumpSpeed)
+            setPad(pad: $pad0, state: data.pad0)
+            setPad(pad: $pad1, state: data.pad1)
+            setAutoPreset(autoPreset: $autoPreset, preset: data.autoPreset)
+            setOperationMode(operationMode: $selectedMode, mode: data.operationMode)
+            goalTemperature = CGFloat(data.goalTemperature)
+            currentTemperature = CGFloat(data.currentTemperature)
+
+        } catch {
+            print("Error decoding data: \(error)")
+            return
+        }
+    }
+    
+//    func loadWsStatus(_ data: String) throws -> Void{
+//        do{
+//            let decoder = JSONDecoder()
+//            decoder.keyDecodingStrategy = .convertFromSnakeCase
+//            return try decoder.decode(ResponseStatus.self, from: data)
+//        } catch {
+//            print(error)
+//            throw fetchError.decodeError
+//        }
+//    }
+//    
+//    func loadStatusData(){
+////        if editLock > 0{
+////            print(editLock)
+////            print("aborting")
+////            return
+////        }
+//        Task{
+//            do{
+//                let data = try await getStatus(ip: ip)
+//                coolantTemperature = data.coolantTemperature
+//                ambientTemperature = data.ambientTemperature
+//                humidity = CGFloat(data.humidity)
+//                setSpeed(speed: $fanSpeedMode, val: data.fanSpeed)
+//                setSpeed(speed: $pumpSpeedMode, val: data.pumpSpeed)
+//                setPad(pad: $pad0, state: data.pad0)
+//                setPad(pad: $pad1, state: data.pad1)
+//                setAutoPreset(autoPreset: $autoPreset, preset: data.autoPreset)
+//                setOperationMode(operationMode: $selectedMode, mode: data.operationMode)
+//                
+//            }catch{print(error)}
+//        }
+//    }
 }
 
 struct ContentView_Previews: PreviewProvider {
