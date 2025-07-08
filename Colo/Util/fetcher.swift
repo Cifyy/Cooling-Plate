@@ -24,6 +24,8 @@ struct ResponseStatus: Decodable{
     let coolantTemperature: Double
     let ambientTemperature: Double
     let humidity: Double
+    let currentTemperature: Double
+    let goalTemperature: Int
 }
 
 func getStatus(ip: String) async throws -> ResponseStatus{

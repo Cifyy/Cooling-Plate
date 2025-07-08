@@ -15,11 +15,13 @@ struct AutoView: View {
     
     @Binding var selectedMode: OperationMode
     @Binding var temperatureValue: CGFloat
+    @State var currentTemperature: CGFloat
+    let client: WebSocketClient // Should be envioremental var
+    
     var angleValue: CGFloat{ setAngle(value: temperatureValue, config: config)}
     
     @State private var isDraggingInside = true
-
-    @State var currentTemperature: CGFloat = 25.0
+    
     
     var displayTemperature: CGFloat{
         if selectedMode == .Auto{
@@ -32,7 +34,7 @@ struct AutoView: View {
     
     let config = Config(minimumValue: 0.0,
                         maximumValue: 30.0,
-//                        totalValue: 30.0,
+                        //                        totalValue: 30.0,
                         knobRadius: 15.0,
                         radius: 125.0,
                         name: "DWA",
@@ -59,7 +61,7 @@ struct AutoView: View {
                 .stroke(Color.black.opacity(0.1), style: StrokeStyle(lineWidth: 40, lineCap: .round))
                 .rotationEffect(.degrees(135))
                 .frame(width: config.radius * 2, height: config.radius * 2)
-                
+            
             Circle()
                 .trim(from: 0.0, to: 0.75)
             
@@ -99,7 +101,7 @@ struct AutoView: View {
             //                .rotationEffect(Angle.degrees(Double(angleValue) - 60))
                 .rotationEffect(Angle.degrees(currentTemperature/config.maximumValue * 270.0 - 135))
             
-            //Current temp dow
+            //Current temp dot
             Circle()
                 .fill(Color.white)
                 .frame(width: config.knobRadius * 1.4, height: config.knobRadius * 1.4)
@@ -165,8 +167,14 @@ struct AutoView: View {
         let value = fixedAngle / (2.0 * .pi) * config.maximumValue * 4/3
         
         if (fixedAngle * 180 / .pi) <= 270 && value <= currentTemperature && value < config.maximumValue {
+            if(Int(temperatureValue) != Int(value)){
+                Task{ @WebSocketActor in
+                    await WsSetStateProperty(client: client, name: "goal_temperature", state: Int(temperatureValue))
+                }
+            }
             temperatureValue = value
         }
     }
 }
+
 
