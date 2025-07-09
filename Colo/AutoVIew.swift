@@ -7,28 +7,26 @@
 
 import SwiftUI
 
-func distance(_ p1: CGPoint,_ p2: CGPoint) -> Double {
-    return sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y))
-}
-
 struct AutoView: View {
+  
     
-    @Binding var selectedMode: OperationMode
-    @Binding var temperatureValue: CGFloat
-    @State var currentTemperature: CGFloat
-    let client: WebSocketClient // Should be envioremental var
+//    @Binding var selectedMode: OperationMode
+//    @Binding var temperatureValue: CGFloat
+//    @Binding var currentTemperature: CGFloat
+    @EnvironmentObject var client: WebSocketClient
+    @EnvironmentObject var plateState: PlateState
     
-    var angleValue: CGFloat{ setAngle(value: temperatureValue, config: config)}
+    var angleValue: CGFloat{ setAngle(value: plateState.goalTemperature, config: config)}
     
     @State private var isDraggingInside = true
     
     
     var displayTemperature: CGFloat{
-        if selectedMode == .Auto{
-            return temperatureValue
+        if plateState.selectedMode == .Auto{
+            return plateState.goalTemperature
         }
         else{
-            return currentTemperature
+            return plateState.currentTemperature
         }
     }
     
@@ -72,25 +70,25 @@ struct AutoView: View {
             
             //Difference
             Circle()
-                .trim(from: temperatureValue/config.maximumValue * 3/4, to: currentTemperature/config.maximumValue * 3/4)
+                .trim(from: plateState.goalTemperature/config.maximumValue * 3/4, to: plateState.currentTemperature/config.maximumValue * 3/4)
                 .stroke(
                     config.gradient,
                     style: StrokeStyle(lineWidth: config.knobRadius * 1.4, lineCap: .round)
                 )
                 .frame(width: config.radius * 2, height: config.radius * 2)
                 .rotationEffect(.degrees(-225))
-                .opacity(selectedMode == .Auto ? 1 : 0)
+                .opacity(plateState.selectedMode == .Auto ? 1 : 0)
             
             //Manual
             Circle()
-                .trim(from: 0, to: currentTemperature/config.maximumValue * 3/4)
+                .trim(from: 0, to: plateState.currentTemperature/config.maximumValue * 3/4)
                 .stroke(
                     config.gradient,
                     style: StrokeStyle(lineWidth: config.knobRadius * 1.4, lineCap: .round)
                 )
                 .frame(width: config.radius * 2, height: config.radius * 2)
                 .rotationEffect(.degrees(-225))
-                .opacity(selectedMode == .Manual ? 1 : 0)
+                .opacity(plateState.selectedMode == .Manual ? 1 : 0)
             
             //Current temp shadow dot
             Circle()
@@ -99,7 +97,7 @@ struct AutoView: View {
                 .padding(10)
                 .offset(y: -config.radius)
             //                .rotationEffect(Angle.degrees(Double(angleValue) - 60))
-                .rotationEffect(Angle.degrees(currentTemperature/config.maximumValue * 270.0 - 135))
+                .rotationEffect(Angle.degrees(plateState.currentTemperature/config.maximumValue * 270.0 - 135))
             
             //Current temp dot
             Circle()
@@ -108,7 +106,7 @@ struct AutoView: View {
                 .padding(10)
                 .offset(y: -config.radius)
             //                .rotationEffect(Angle.degrees(Double(angleValue) - 60))
-                .rotationEffect(Angle.degrees(currentTemperature/config.maximumValue * 270.0 - 135))
+                .rotationEffect(Angle.degrees(plateState.currentTemperature/config.maximumValue * 270.0 - 135))
             
             
             Circle()
@@ -117,7 +115,7 @@ struct AutoView: View {
                 .padding(10)
                 .offset(y: -config.radius)
                 .rotationEffect(Angle.degrees(Double(angleValue) - 135))
-                .opacity(selectedMode == .Auto ? 1 : 0)
+                .opacity(plateState.selectedMode == .Auto ? 1 : 0)
             
             Circle()
                 .fill(Color.white)
@@ -125,7 +123,7 @@ struct AutoView: View {
                 .padding(10)
                 .offset(y: -config.radius)
                 .rotationEffect(Angle.degrees(Double(angleValue) - 135))
-                .opacity(selectedMode == .Auto ? 1 : 0)
+                .opacity(plateState.selectedMode == .Auto ? 1 : 0)
                 .gesture(
                     DragGesture(minimumDistance: 0.0)
                         .onChanged { value in
@@ -138,14 +136,15 @@ struct AutoView: View {
                         }
                         .onEnded { _ in
                             isDraggingInside = true
+                            WsSetStateProperty(client: client, name: "goal_temperature", state: Int(plateState.goalTemperature))
                         }
                 )
             
             VStack{
-                Text("Current \(String.init(format: "%.0f", currentTemperature))º")
+                Text("Current \(String.init(format: "%.0f", plateState.currentTemperature))º")
                     .font(.system(size: 20))
                     .foregroundColor(.gray)
-                    .opacity(selectedMode == .Auto ? 1 : 0)
+                    .opacity(plateState.selectedMode == .Auto ? 1 : 0)
                 
                 Text("\(String.init(format: "%.0f", displayTemperature))º")
                     .font(.system(size: 60))
@@ -155,7 +154,12 @@ struct AutoView: View {
         }.padding(.top, 20).coordinateSpace(name: "knob")
     }
     
+    private func distance(_ p1: CGPoint,_ p2: CGPoint) -> Double {
+        return sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y))
+    }
+    
     private func change(location: CGPoint) {
+        
         let vector = CGVector(dx: location.x, dy: location.y)
         
         var angle = atan2(vector.dy - (config.knobRadius + 10), vector.dx - (config.knobRadius + 10)) + .pi/2.0
@@ -166,13 +170,8 @@ struct AutoView: View {
         
         let value = fixedAngle / (2.0 * .pi) * config.maximumValue * 4/3
         
-        if (fixedAngle * 180 / .pi) <= 270 && value <= currentTemperature && value < config.maximumValue {
-            if(Int(temperatureValue) != Int(value)){
-                Task{ @WebSocketActor in
-                    await WsSetStateProperty(client: client, name: "goal_temperature", state: Int(temperatureValue))
-                }
-            }
-            temperatureValue = value
+        if (fixedAngle * 180 / .pi) <= 270 && value <= plateState.currentTemperature && value < config.maximumValue {
+            plateState.goalTemperature = value
         }
     }
 }

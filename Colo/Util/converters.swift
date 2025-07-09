@@ -7,60 +7,65 @@
 
 import SwiftUI
 
-func setSpeed(speed: Binding<SpeedMode>, val: Int) {
+//func setSpeed(_ speed: Binding<SpeedMode>,_ val: Int) {
+func setSpeed(_ speed: inout SpeedMode,from val: Int){
     switch val {
     case 0:
-        speed.wrappedValue = .zero
+        speed = .zero
     case 1...20:
-        speed.wrappedValue = .one
+        speed = .one
     case 21...40:
-        speed.wrappedValue = .two
+        speed = .two
     case 41...60:
-        speed.wrappedValue = .three
+        speed = .three
     case 61...80:
-        speed.wrappedValue = .four
+        speed = .four
     case 81...100:
-        speed.wrappedValue = .five
+        speed = .five
     default:
-        speed.wrappedValue = .zero
+        speed = .zero
     }
 }
 
-func setPad(pad: Binding<PowerState>, state: Bool){
+
+//func setPad(_ pad: Binding<PowerState>,_ state: Bool){
+func setPad(_ pad: inout PowerState,from state: Bool){
     switch state{
     case true:
-        pad.wrappedValue = .On
+        pad = .On
     case false:
-        pad.wrappedValue = .Off
+        pad = .Off
     }
 }
 
-func setAutoPreset(autoPreset: Binding<AutoPreset>, preset: Int){
+//func setAutoPreset(_ autoPreset: Binding<AutoPreset>,_ preset: Int){
+func setAutoPreset(_ autoPreset: inout AutoPreset,from preset: Int){
     switch preset{
     case 1:
-        autoPreset.wrappedValue = .Eco
+        autoPreset = .Eco
     case 2:
-        autoPreset.wrappedValue = .Silent
+        autoPreset = .Silent
     case 3:
-        autoPreset.wrappedValue = .Normal
+        autoPreset = .Normal
     case 4:
-        autoPreset.wrappedValue = .Strong
+        autoPreset = .Strong
     case 5:
-        autoPreset.wrappedValue = .Blast
+        autoPreset = .Blast
     default:
-        autoPreset.wrappedValue = .Normal
+        autoPreset = .Normal
     }
 }
 
-func setOperationMode(operationMode: Binding<OperationMode>, mode: Int){
+//func setOperationMode(_ operationMode: Binding<OperationMode>,_ mode: Int){
+func setOperationMode(_ operationMode: inout OperationMode,from mode: Int){
     switch mode{
     case 0:
-        operationMode.wrappedValue = .Off
+        operationMode = .Off
     case 1:
-        operationMode.wrappedValue = .Auto
+        operationMode = .Auto
     case 2:
-        operationMode.wrappedValue = .Manual
+        operationMode = .Manual
     default:
-        operationMode.wrappedValue = .Off
+        operationMode = .Off
     }
 }

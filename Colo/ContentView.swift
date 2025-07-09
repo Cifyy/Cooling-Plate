@@ -7,86 +7,15 @@
 
 import SwiftUI
 
-//class OperationState: Encodable, Equatable, ObservableObject{
-//    @Published var selectedMode: OperationMode = .Off
-//    
-//    @Published var fanSpeedMode: SpeedMode = .one
-//    @Published var pumpSpeedMode: SpeedMode = .one
-//    
-//    @Published var pad0 = PowerState.Off
-//    @Published var pad1 = PowerState.Off
-//    
-//    @Published var autoPreset: AutoPreset = .Normal
-//    
-//    static func == (lhs: OperationState, rhs: OperationState) -> Bool {
-//        return lhs.selectedMode == rhs.selectedMode &&
-//            lhs.fanSpeedMode == rhs.fanSpeedMode &&
-//            lhs.pumpSpeedMode == rhs.pumpSpeedMode &&
-//            lhs.pad0 == rhs.pad0 &&
-//            lhs.pad1 == rhs.pad1 &&
-//            lhs.autoPreset == rhs.autoPreset
-//    }
-//    
-//    enum CodingKeys: String, CodingKey {
-//        case selectedMode = "mode"
-//        case fanSpeedMode = "fanSpeed"
-//        case pumpSpeedMode = "pumpSpeed"
-//        case pad0 = "pad_0"
-//        case pad1 = "pad_1"
-//        case autoPreset
-//    }
-//    
-//    func encode(to encoder: Encoder) throws {
-//        var container = encoder.container(keyedBy: CodingKeys.self)
-//        try container.encode(selectedMode.rawValue, forKey: .selectedMode)
-//        try container.encode(fanSpeedMode.rawValue, forKey: .fanSpeedMode)
-//        try container.encode(pumpSpeedMode.rawValue, forKey: .pumpSpeedMode)
-//        try container.encode(pad0.rawValue, forKey: .pad0)
-//        try container.encode(pad1.rawValue, forKey: .pad1)
-//        try container.encode(autoPreset.rawValue, forKey: .autoPreset)
-//    }
-//}
-
-
-
 struct ContentView: View {
-//    let timer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
+    
+    @EnvironmentObject var client: WebSocketClient
+    @EnvironmentObject var plateState: PlateState
     
     let coolantConfig = coolantDefaultConfig
     let humidityConfig = humidityDefaultConfig
     let ambientTemperatureConfig = ambientDefaultTemperatureConfig
     
-    //websocket
-    let client = WebSocketClient(url: URL(string: "ws://192.168.1.62")!,
-                                 configuration: .init(additionalHeaders: [:],
-                                 pingInterval: 2,
-                                 pingTryReconnectCountLimit: 2))
-    
-    @State private var connectionState: ConnectionState = .disconnected
-    
-//    @StateObject var state = OperationState()
-//    @State private var lastSentState = OperationState()
-
-    @State var selectedMode: OperationMode = .Off
-    
-    @State var fanSpeedMode: SpeedMode = .one
-    @State var pumpSpeedMode: SpeedMode = .one
-    
-    @State var pad0 = PowerState.Off
-    @State var pad1 = PowerState.Off
-    
-    @State var autoPreset: AutoPreset = .Normal
-    @State var goalTemperature: CGFloat = 0
-    
-//    @State var editLock: Int = 0
-    @State var currentTemperature: CGFloat = 25
-    @State var coolantTemperature: CGFloat = 60
-    @State var humidity: CGFloat = 97
-    @State var ambientTemperature: CGFloat = 28
-    
-    @State private var triggerFeedback = false
-    
-    let ip = "192.168.1.108"
     var body: some View {
         ZStack {
             Rectangle().fill(Color.init(red: 34/255, green: 30/255, blue: 47/255)).edgesIgnoringSafeArea(.all)
@@ -94,163 +23,42 @@ struct ContentView: View {
                 HStack{
                     Circle()
                         .blink()
-                        .connectionColor(connectionState)
+                        .connectionColor(client.connectionState)
                         .frame(height: 12)
                         .padding(.top, 20)
                         .padding(.leading, 25)
                     Spacer()
                 }
-                AutoView(selectedMode: $selectedMode, temperatureValue: $goalTemperature, currentTemperature: currentTemperature, client: client).opacity(selectedMode == .Off ? 0.6 : 1)
+                AutoView().opacity(plateState.selectedMode == .Off ? 0.6 : 1)
                 HStack{
                     Spacer()
-                    gauge(value: $coolantTemperature, config: coolantConfig)
+                    Gauge(value: $plateState.coolantTemperature, config: coolantConfig)
                     Spacer()
-                    gauge(value: $humidity, config: humidityConfig)
+                    Gauge(value: $plateState.humidity, config: humidityConfig)
                     Spacer()
-                    gauge(value: $ambientTemperature, config: ambientTemperatureConfig)
+                    Gauge(value: $plateState.ambientTemperature, config: ambientTemperatureConfig)
                     Spacer()
-                }.opacity(selectedMode == .Off ? 0.6 : 1)
+                }.opacity(plateState.selectedMode == .Off ? 0.6 : 1)
                 
-                PickerView("Mode", $selectedMode, name:"mode",ip: ip, client: client)
-
-                if(selectedMode == .Manual){
-                    PickerView("Fan", $fanSpeedMode,name: "fan_speed", ip: ip, client: client).padding(.top,30)
-                    PickerView("Pump", $pumpSpeedMode,name: "pump_speed", ip: ip, client: client).padding(.top,10)
-                    PickerView("Pad 1", $pad0,name: "pad_0",ip: ip, client: client).padding(.top,15)
-                    PickerView("Pad 2", $pad1,name: "pad_1", ip: ip, client: client).padding(.top,10)
+                PickerView("Mode", $plateState.selectedMode, name:"mode")
+                
+                if(plateState.selectedMode == .Manual){
                     
-                }else if (selectedMode == .Auto){
-                    PickerView("Preset",$autoPreset,name: "auto_preset", ip: ip, client: client).padding(.top,30)
+                    PickerView("Fan", $plateState.fanSpeedMode,name: "fan_speed").padding(.top,25)
+                    PickerView("Pump", $plateState.pumpSpeedMode,name: "pump_speed").padding(.top,10)
+                    PickerView("Pad 1", $plateState.pad0,name: "pad_0").padding(.top,15)
+                    PickerView("Pad 2", $plateState.pad1,name: "pad_1").padding(.top,10)
+                    
+                }else if (plateState.selectedMode == .Auto){
+                    
+                    PickerView("Preset",$plateState.autoPreset,name: "auto_preset").padding(.top,25)
+                    
                 }
                 Spacer()
             }.frame(maxWidth: 500)
         }
-//        .onReceive(timer) { time in
-//            loadStatusData()
-//        }
-        .onAppear{
-//            loadStatusData()
-            startWebSocket()
-            Task { @WebSocketActor [weak client] in
-                client?.onConnectionStateChange = { newState in
-                    Task { @MainActor in
-                        self.connectionState = newState
-                    }
-                }
-            }
-                
-        }
-        .sensoryFeedback(.success, trigger: triggerFeedback)
-        .onChange(of: selectedMode){ oldState, newState in
-            if oldState != newState {
-//                editLock += 1
-                Task{
-                    await WsSetStateProperty(client: client, name: "mode", state: newState.rawValue)
-//                    if await setStateProperty(ip: ip,name: "mode", state: newState.rawValue){
-//                            do{sleep(2)}
-//                            editLock -= 1
-                        //haptics
-//                    }
-                }
-            }
-        }
     }
-    
-    func startWebSocket(){
-        Task{ @WebSocketActor in
-            print("Starting websocket")
-            client.connect()
-            client.onReceive = { result in
-                switch result{
-                case .success(let message):
-                    switch message{
-                        case .string(let text):
-                            print("Received: \(text)")
-                        Task{ @MainActor in
-                            if text == "ok"{
-                                triggerFeedback.toggle()
-                            }else{
-                                loadWsStatus(text)
-                            }
-                        }
-                    default: break
-                    }
-                case .failure(let error):
-                    print("Receiving error: \(error)")
-                }
-            }
-            client.onConnectionStateChange = { state in
-                    print("Connection state: \(state)")
-            }
-        }
-    }
-    
-    
-    func loadWsStatus(_ dataString: String){
-        guard let dataObject = dataString.data(using: .utf8) else {
-            print("error converting string to data")
-            return
-        }
-        
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-    
-        do {
-            let data = try decoder.decode(ResponseStatus.self, from: dataObject)
-            
-            coolantTemperature = data.coolantTemperature
-            ambientTemperature = data.ambientTemperature
-            humidity = CGFloat(data.humidity)
-            setSpeed(speed: $fanSpeedMode, val: data.fanSpeed)
-            setSpeed(speed: $pumpSpeedMode, val: data.pumpSpeed)
-            setPad(pad: $pad0, state: data.pad0)
-            setPad(pad: $pad1, state: data.pad1)
-            setAutoPreset(autoPreset: $autoPreset, preset: data.autoPreset)
-            setOperationMode(operationMode: $selectedMode, mode: data.operationMode)
-            goalTemperature = CGFloat(data.goalTemperature)
-            currentTemperature = CGFloat(data.currentTemperature)
-
-        } catch {
-            print("Error decoding data: \(error)")
-            return
-        }
-    }
-    
-//    func loadWsStatus(_ data: String) throws -> Void{
-//        do{
-//            let decoder = JSONDecoder()
-//            decoder.keyDecodingStrategy = .convertFromSnakeCase
-//            return try decoder.decode(ResponseStatus.self, from: data)
-//        } catch {
-//            print(error)
-//            throw fetchError.decodeError
-//        }
-//    }
-//    
-//    func loadStatusData(){
-////        if editLock > 0{
-////            print(editLock)
-////            print("aborting")
-////            return
-////        }
-//        Task{
-//            do{
-//                let data = try await getStatus(ip: ip)
-//                coolantTemperature = data.coolantTemperature
-//                ambientTemperature = data.ambientTemperature
-//                humidity = CGFloat(data.humidity)
-//                setSpeed(speed: $fanSpeedMode, val: data.fanSpeed)
-//                setSpeed(speed: $pumpSpeedMode, val: data.pumpSpeed)
-//                setPad(pad: $pad0, state: data.pad0)
-//                setPad(pad: $pad1, state: data.pad1)
-//                setAutoPreset(autoPreset: $autoPreset, preset: data.autoPreset)
-//                setOperationMode(operationMode: $selectedMode, mode: data.operationMode)
-//                
-//            }catch{print(error)}
-//        }
-//    }
 }
-
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
