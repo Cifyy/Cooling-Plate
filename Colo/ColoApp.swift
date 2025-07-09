@@ -26,11 +26,6 @@ struct ColoApp: App {
                     startWebSocket()
                 }
                 .sensoryFeedback(.impact(weight: .light), trigger: triggerFeedback)
-                .onChange(of: plateState.selectedMode){ oldState, newState in
-                    if oldState != newState {
-                        WsSetStateProperty(client: client, name: "mode", state: newState.rawValue)
-                    }
-                }
             
         }
     }
@@ -57,9 +52,6 @@ struct ColoApp: App {
                 case .failure(let error):
                     print("Receiving error: \(error)")
                 }
-            }
-            client.onConnectionStateChange = { state in
-                print("Connection state: \(state)")
             }
             //Request initial state
             //            client.send(message: WebSocketClientMessage())

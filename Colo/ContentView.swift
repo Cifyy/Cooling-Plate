@@ -16,6 +16,8 @@ struct ContentView: View {
     let humidityConfig = humidityDefaultConfig
     let ambientTemperatureConfig = ambientDefaultTemperatureConfig
     
+    @State var connectionState: ConnectionState = .disconnected
+    
     var body: some View {
         ZStack {
             Rectangle().fill(Color.init(red: 34/255, green: 30/255, blue: 47/255)).edgesIgnoringSafeArea(.all)
@@ -23,7 +25,7 @@ struct ContentView: View {
                 HStack{
                     Circle()
                         .blink()
-                        .connectionColor(client.connectionState)
+                        .connectionColor(connectionState)
                         .frame(height: 12)
                         .padding(.top, 20)
                         .padding(.leading, 25)
@@ -44,10 +46,10 @@ struct ContentView: View {
                 
                 if(plateState.selectedMode == .Manual){
                     
-                    PickerView("Fan", $plateState.fanSpeedMode,name: "fan_speed").padding(.top,25)
-                    PickerView("Pump", $plateState.pumpSpeedMode,name: "pump_speed").padding(.top,10)
-                    PickerView("Pad 1", $plateState.pad0,name: "pad_0").padding(.top,15)
-                    PickerView("Pad 2", $plateState.pad1,name: "pad_1").padding(.top,10)
+                    PickerView("Fan",   $plateState.fanSpeedMode,   name: "fan_speed"   ).padding(.top,25)
+                    PickerView("Pump",  $plateState.pumpSpeedMode,  name: "pump_speed"  ).padding(.top,10)
+                    PickerView("Pad 1", $plateState.pad0,           name: "pad_0"       ).padding(.top,15)
+                    PickerView("Pad 2", $plateState.pad1,           name: "pad_1"       ).padding(.top,10)
                     
                 }else if (plateState.selectedMode == .Auto){
                     
@@ -56,6 +58,16 @@ struct ContentView: View {
                 }
                 Spacer()
             }.frame(maxWidth: 500)
+                .onAppear(){
+                    Task{ @WebSocketActor in
+                        client.onConnectionStateChange = { state in
+                            Task{ @MainActor in
+                                connectionState = await client.connectionState
+                                print("Connection state: \(state)")
+                            }
+                        }
+                    }
+                }
         }
     }
 }
