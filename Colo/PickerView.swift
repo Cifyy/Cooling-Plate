@@ -8,16 +8,16 @@
 import SwiftUI
 
 struct PickerView<O: CaseIterable & Identifiable & Hashable & RawRepresentable>: View where O.AllCases: RandomAccessCollection{
-    let ip: String
+    @EnvironmentObject var client: WebSocketClient
     let headline: String
     let name: String
+    
     @Binding var selection: O
     
-    init(_ headline: String, _ selection: Binding<O>, name: String, ip: String) {
+    init(_ headline: String, _ selection: Binding<O>, name: String) {
         self.headline = headline
         self._selection = selection
         self.name = name
-        self.ip = ip
     }
     
     var body: some View{
@@ -42,10 +42,9 @@ struct PickerView<O: CaseIterable & Identifiable & Hashable & RawRepresentable>:
         }.padding(.horizontal, 20)
             .onChange(of: selection){ oldState, newState in
                 if oldState != newState {
-                    Task{
-                        if await setStateProperty(ip: ip, name: name, state: newState.rawValue as! Int){
-                            //haptics
-                        }
+                    Task{ @WebSocketActor in
+//                        await WsSetStateProperty(client: client, name: name, state: newState.rawValue as! Int)
+                       await client.sendProperty(name: name, state: newState.rawValue as! Int)
                     }
                 }
             }

@@ -15,7 +15,7 @@ enum OperationMode: Int, CaseIterable, Identifiable, Codable {
 
 }
 
-enum PowerState: Int, CaseIterable, Identifiable {
+enum PowerState: Int, CaseIterable, Identifiable, Codable {
     case Off = 0
     case On = 1
     
@@ -37,7 +37,7 @@ enum AutoPreset: Int, CaseIterable, Identifiable, Codable {
     
 }
 
-enum SpeedMode: Int, CaseIterable, Identifiable, CustomStringConvertible {
+enum SpeedMode: Int, CaseIterable, Identifiable, CustomStringConvertible, Codable {
     case zero =  0
     case one
     case two

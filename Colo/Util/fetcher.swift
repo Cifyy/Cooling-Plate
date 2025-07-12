@@ -7,43 +7,45 @@
 import Foundation
 import SwiftUI
 
-enum fetchError: Error{
-    case invalidIP
-    case invalidResponse
-    case urlError
-    case decodeError
-}
+//enum fetchError: Error{
+//    case invalidIP
+//    case invalidResponse
+//    case urlError
+//    case decodeError
+//}
 
-struct ResponseStatus: Decodable{
-    let operationMode: Int
-    let autoPreset: Int
-    let pad0: Bool
-    let pad1: Bool
-    let fanSpeed: Int
-    let pumpSpeed: Int
-    let coolantTemperature: Double
-    let ambientTemperature: Double
-    let humidity: Double
-}
+//struct ResponseStatus: Decodable{
+//    let operationMode: Int
+//    let autoPreset: Int
+//    let pad0: Bool
+//    let pad1: Bool
+//    let fanSpeed: Int
+//    let pumpSpeed: Int
+//    let coolantTemperature: Double
+//    let ambientTemperature: Double
+//    let humidity: Double
+//    let currentTemperature: Double
+//    let goalTemperature: Int
+//}
 
-func getStatus(ip: String) async throws -> ResponseStatus{
-    let endpoint = "http://" + ip + "/status"
-    guard let url = URL(string: endpoint) else { throw fetchError.invalidIP }
-    
-    let(data, response) = try await URLSession.shared.data(from: url)
-    
-    guard let response = response as? HTTPURLResponse, response.statusCode == 200 else{ throw fetchError.urlError }
-    
-    do{
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode(ResponseStatus.self, from: data)
-    } catch {
-        print(error)
-        throw fetchError.decodeError
-    }
-}
-    
+//func getStatus(ip: String) async throws -> ResponseStatus{
+//    let endpoint = "http://" + ip + "/status"
+//    guard let url = URL(string: endpoint) else { throw fetchError.invalidIP }
+//    
+//    let(data, response) = try await URLSession.shared.data(from: url)
+//    
+//    guard let response = response as? HTTPURLResponse, response.statusCode == 200 else{ throw fetchError.urlError }
+//    
+//    do{
+//        let decoder = JSONDecoder()
+//        decoder.keyDecodingStrategy = .convertFromSnakeCase
+//        return try decoder.decode(ResponseStatus.self, from: data)
+//    } catch {
+//        print(error)
+//        throw fetchError.decodeError
+//    }
+//}
+//    
     
     
 //    
