@@ -86,7 +86,9 @@ class PlateState: Decodable, ObservableObject{
             self.coolantTemperature = decodedObject.coolantTemperature
             self.humidity = decodedObject.humidity
             self.ambientTemperature = decodedObject.ambientTemperature
-            self.goalTemperature = decodedObject.goalTemperature
+            if(round(self.goalTemperature) != round(decodedObject.goalTemperature)){
+                self.goalTemperature = decodedObject.goalTemperature
+            }
             
         } catch {
             print("Failed to update PlateState from JSON string: \(error)")

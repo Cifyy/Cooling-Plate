@@ -6,22 +6,22 @@
 //
 import SwiftUI
 
-func WsSetStateProperty(client: WebSocketClient, name: String, state: Int){
-    Task{ @WebSocketActor in
-        do{
-            let payload: [String: Any] = [
-                name: state
-            ]
-            let jsonData = try JSONSerialization.data(withJSONObject: payload, options: [])
-            if let jsonString = String(data: jsonData, encoding: .utf8){
-                print(jsonString)
-                try await client.send(.string(jsonString))
-            }
-        }catch{
-            print("Error serializing JSON: \(error)")
-        }
-    }
-}
+//func WsSetStateProperty(client: WebSocketClient, name: String, state: Int){
+//    Task{ @WebSocketActor in
+//        do{
+//            let payload: [String: Any] = [
+//                name: state
+//            ]
+//            let jsonData = try JSONSerialization.data(withJSONObject: payload, options: [])
+//            if let jsonString = String(data: jsonData, encoding: .utf8){
+//                print(jsonString)
+//                try await client.send(.string(jsonString))
+//            }
+//        }catch{
+//            print("Error serializing JSON: \(error)")
+//        }
+//    }
+//}
 
 
 

@@ -20,10 +20,14 @@ struct WebSocketConfiguration {
     }
 }
 
-enum ConnectionState {
-    case disconnected
-    case connecting
-    case connected
+enum ConnectionState: String, RawRepresentable {
+    case disconnected = "Disconnected"
+    case connecting = "Connecting"
+    case connected = "Connected"
+}
+
+enum URLError: Error{
+    case invalidIP
 }
 
 @globalActor actor WebSocketActor {
@@ -36,7 +40,7 @@ typealias WebSocketClientMessage = URLSessionWebSocketTask.Message
 class WebSocketClient: NSObject, Sendable, ObservableObject {
 
     private let session: URLSession
-    private let url: URL
+    private var url: URL
     private let configuration: WebSocketConfiguration
     
     private var monitor: NWPathMonitor?
@@ -52,6 +56,16 @@ class WebSocketClient: NSObject, Sendable, ObservableObject {
             onConnectionStateChange?(connectionState)
         }
     }
+    
+    func changeUrl(_ newURL: String) throws -> Void {
+        guard let url = URL(string: "ws://" + newURL) else{
+            print("Invalid ip")
+            throw URLError.invalidIP
+        }
+        self.url = url
+        self.reconnect()
+    }
+    
     
     nonisolated init(url: URL, configuration: WebSocketConfiguration, session: URLSession = .init(configuration: .default)) {
         self.url = url

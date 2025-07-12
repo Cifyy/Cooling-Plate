@@ -35,8 +35,8 @@ struct AutoView: View {
                         //                        totalValue: 30.0,
                         knobRadius: 15.0,
                         radius: 125.0,
-                        name: "DWA",
-                        unit: "daw",
+                        name: "Auto",
+                        unit: "celcius",
                         gradient:                         AngularGradient(
                             gradient: Gradient(stops: [
                                 .init(color: .purple, location: 0.0),
@@ -136,7 +136,7 @@ struct AutoView: View {
                         }
                         .onEnded { _ in
                             isDraggingInside = true
-                            WsSetStateProperty(client: client, name: "goal_temperature", state: Int(plateState.goalTemperature))
+                            client.sendProperty(name: "goal_temperature", state: Int(round(plateState.goalTemperature)))
                         }
                 )
             

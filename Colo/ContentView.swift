@@ -17,21 +17,26 @@ struct ContentView: View {
     let ambientTemperatureConfig = ambientDefaultTemperatureConfig
     
     @State var connectionState: ConnectionState = .disconnected
+    @State var showSettingsSheet = false
     
     var body: some View {
         ZStack {
             Rectangle().fill(Color.init(red: 34/255, green: 30/255, blue: 47/255)).edgesIgnoringSafeArea(.all)
-            VStack(spacing: 3){
+            VStack{
                 HStack{
-                    Circle()
-                        .blink()
-                        .connectionColor(connectionState)
-                        .frame(height: 12)
-                        .padding(.top, 20)
-                        .padding(.leading, 25)
                     Spacer()
+                    Button(action: {
+                        showSettingsSheet.toggle()
+                    }) {
+                        Image(systemName: "slider.vertical.3").font(.system(size: 23)).foregroundStyle(.white)
+                    }.padding(15)
                 }
-                AutoView().opacity(plateState.selectedMode == .Off ? 0.6 : 1)
+                ConnectionStateView(connectionState: $connectionState).padding(.top, 218)
+                Spacer()
+            }
+            VStack(spacing: 3){
+                AutoView().opacity(plateState.selectedMode == .Off && connectionState == .connected ? 0.6 : 1)
+                
                 HStack{
                     Spacer()
                     Gauge(value: $plateState.coolantTemperature, config: coolantConfig)
@@ -40,16 +45,18 @@ struct ContentView: View {
                     Spacer()
                     Gauge(value: $plateState.ambientTemperature, config: ambientTemperatureConfig)
                     Spacer()
-                }.opacity(plateState.selectedMode == .Off ? 0.6 : 1)
+                }
+//                .opacity(plateState.selectedMode == .Off ? 0.6 : 1)
                 
-                PickerView("Mode", $plateState.selectedMode, name:"mode")
                 
+                PickerView("Mode", $plateState.selectedMode, name: "mode")
+
                 if(plateState.selectedMode == .Manual){
                     
                     PickerView("Fan",   $plateState.fanSpeedMode,   name: "fan_speed"   ).padding(.top,25)
-                    PickerView("Pump",  $plateState.pumpSpeedMode,  name: "pump_speed"  ).padding(.top,10)
-                    PickerView("Pad 1", $plateState.pad0,           name: "pad_0"       ).padding(.top,15)
-                    PickerView("Pad 2", $plateState.pad1,           name: "pad_1"       ).padding(.top,10)
+                    PickerView("Pump",  $plateState.pumpSpeedMode,  name: "pump_speed"  ).padding(.top,8)
+                    PickerView("Pad 1", $plateState.pad0,           name: "pad_0"       ).padding(.top,20)
+                    PickerView("Pad 2", $plateState.pad1,           name: "pad_1"       ).padding(.top,8)
                     
                 }else if (plateState.selectedMode == .Auto){
                     
@@ -68,6 +75,13 @@ struct ContentView: View {
                         }
                     }
                 }
+                .sheet(isPresented: $showSettingsSheet) {
+                    SettingsView()
+                        .presentationDetents([.fraction(0.3)])
+                        .presentationDragIndicator(.visible)
+                }
+                .opacity(connectionState != .connected ? 0.6 : 1)
+                
         }
     }
 }

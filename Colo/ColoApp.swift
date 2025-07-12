@@ -13,10 +13,23 @@ struct ColoApp: App {
     
     @State private var triggerFeedback = false
     @State var plateState = PlateState()
-    @StateObject var client = WebSocketClient(url: URL(string: "ws://192.168.1.62")!,
-                                              configuration: .init(additionalHeaders: [:],
-                                                                   pingInterval: 2,
-                                                                   pingTryReconnectCountLimit: 2))
+    
+    @StateObject var client: WebSocketClient
+    
+    init() {
+
+        let storedIP = UserDefaults.standard.string(forKey: "serverIp") ?? "0.0.0.0"
+        
+        let url = URL(string: "ws://" + storedIP) ?? URL(string: "ws://0.0.0.0")!
+
+        let configuration = WebSocketConfiguration(
+            additionalHeaders: [:],
+            pingInterval: 2,
+            pingTryReconnectCountLimit: 2
+        )
+
+        _client = StateObject(wrappedValue: WebSocketClient(url: url, configuration: configuration))
+    }
     var body: some Scene {
         WindowGroup {
             ContentView()

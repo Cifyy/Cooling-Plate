@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-//func setSpeed(_ speed: Binding<SpeedMode>,_ val: Int) {
 func setSpeed(_ speed: inout SpeedMode,from val: Int){
     switch val {
     case 0:
@@ -27,8 +26,6 @@ func setSpeed(_ speed: inout SpeedMode,from val: Int){
     }
 }
 
-
-//func setPad(_ pad: Binding<PowerState>,_ state: Bool){
 func setPad(_ pad: inout PowerState,from state: Bool){
     switch state{
     case true:
@@ -38,7 +35,6 @@ func setPad(_ pad: inout PowerState,from state: Bool){
     }
 }
 
-//func setAutoPreset(_ autoPreset: Binding<AutoPreset>,_ preset: Int){
 func setAutoPreset(_ autoPreset: inout AutoPreset,from preset: Int){
     switch preset{
     case 1:
@@ -56,7 +52,6 @@ func setAutoPreset(_ autoPreset: inout AutoPreset,from preset: Int){
     }
 }
 
-//func setOperationMode(_ operationMode: Binding<OperationMode>,_ mode: Int){
 func setOperationMode(_ operationMode: inout OperationMode,from mode: Int){
     switch mode{
     case 0:

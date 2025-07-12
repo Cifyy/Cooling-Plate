@@ -43,7 +43,8 @@ struct PickerView<O: CaseIterable & Identifiable & Hashable & RawRepresentable>:
             .onChange(of: selection){ oldState, newState in
                 if oldState != newState {
                     Task{ @WebSocketActor in
-                        await WsSetStateProperty(client: client, name: name, state: newState.rawValue as! Int)
+//                        await WsSetStateProperty(client: client, name: name, state: newState.rawValue as! Int)
+                       await client.sendProperty(name: name, state: newState.rawValue as! Int)
                     }
                 }
             }
